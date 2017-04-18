@@ -28,14 +28,17 @@ public class PrintDialogActivity extends Activity {
      * needs to be closed.
      */
     private static final String CLOSE_POST_MESSAGE_NAME = "cp-dialog-on-close";
-    /**
-     * Intent that started the action.
-     */
-    Intent cloudPrintIntent;
+
     /**
      * Web view element to show the printing dialog in.
      */
     private WebView dialogWebView;
+
+    /**
+     * Intent that started the action.
+     */
+    Intent cloudPrintIntent;
+
     private int resultCode;
 
     @Override
@@ -147,11 +150,8 @@ public class PrintDialogActivity extends Activity {
 
                 // Add post messages listener.
                 view.loadUrl("javascript:window.addEventListener('message',"
-                                     +
-                                     "function(evt){window." +
-                                     JS_INTERFACE +
-                                     ".onPostMessage(evt.data)}, false)");
+                                     + "function(evt){window." + JS_INTERFACE + ".onPostMessage(evt.data)}, false)");
             }
-        }
-    }
+		}
+	}
 }

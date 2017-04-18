@@ -11,27 +11,13 @@ import android.view.View;
 import android.view.WindowManager;
 
 public class MuPDFReaderView extends ReaderView {
-    private static final float TOUCH_TOLERANCE = 2;
+    public enum Mode {Viewing, Selecting, Drawing}
+
     private final Context mContext;
     private boolean mLinksEnabled = false;
     private Mode mMode = Mode.Viewing;
     private boolean tapDisabled = false;
     private int tapPageMargin;
-    private float mX, mY;
-
-    public MuPDFReaderView(Context context) {
-        super(context);
-        mContext = context;
-        setup();
-    }
-
-    public MuPDFReaderView(Context context, AttributeSet attrs) {
-        super(context, attrs);
-        mContext = context;
-        setup();
-    }
-
-    ;
 
     protected void onTapMainDocArea() {
     }
@@ -41,6 +27,8 @@ public class MuPDFReaderView extends ReaderView {
 
     protected void onHit(Hit item) {
     }
+
+    ;
 
     public void setLinksEnabled(boolean b) {
         mLinksEnabled = b;
@@ -71,13 +59,27 @@ public class MuPDFReaderView extends ReaderView {
         }
     }
 
+    public MuPDFReaderView(Context context) {
+        super(context);
+        mContext = context;
+        setup();
+    }
+
+    public MuPDFReaderView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        mContext = context;
+        setup();
+    }
+
     public boolean onSingleTapUp(MotionEvent e) {
         LinkInfo link = null;
 
         if (mMode == Mode.Viewing && !tapDisabled) {
             MuPDFView pageView = (MuPDFView) getDisplayedView();
-            Hit item = pageView.passClickEvent(e.getX(), e.getY());
-            onHit(item);
+            Hit item = pageView != null ? pageView.passClickEvent(e.getX(), e.getY()) : null;
+            if (item != null) {
+                onHit(item);
+            }
             if (item == Hit.Nothing) {
                 if (mLinksEnabled && pageView != null
                         && (link = pageView.hitLink(e.getX(), e.getY())) != null) {
@@ -186,6 +188,10 @@ public class MuPDFReaderView extends ReaderView {
         return super.onTouchEvent(event);
     }
 
+    private float mX, mY;
+
+    private static final float TOUCH_TOLERANCE = 2;
+
     private void touch_start(float x, float y) {
 
         MuPDFView pageView = (MuPDFView) getDisplayedView();
@@ -274,6 +280,4 @@ public class MuPDFReaderView extends ReaderView {
     protected void onScaleChild(View v, Float scale) {
         ((MuPDFView) v).setScale(scale);
     }
-
-    public enum Mode {Viewing, Selecting, Drawing}
 }

@@ -1,9 +1,9 @@
 package com.artifex.mupdflib;
 
 public class OutlineActivityData {
-    static private OutlineActivityData singleton;
     public OutlineItem items[];
     public int position;
+    static private OutlineActivityData singleton;
 
     static public void set(OutlineActivityData d) {
         singleton = d;

@@ -33,27 +33,20 @@ public class ReaderView
     private static final int GAP = 20;
 
     private static final float MIN_SCALE = 1.0f;
-    private static final float MAX_SCALE = 5.0f;
+    private static final float MAX_SCALE = 64.0f;
     private static final float REFLOW_SCALE_FACTOR = 0.5f;
+
+    private static final boolean HORIZONTAL_SCROLLING = true;
+
+    private Adapter mAdapter;
+    private int mCurrent;    // Adapter's index for the current view
+    private boolean mResetLayout;
     private final SparseArray<View>
             mChildViews = new SparseArray<View>(3);
     // Shadows the children of the adapter view
     // but with more sensible indexing
     private final LinkedList<View>
             mViewCache = new LinkedList<View>();
-    private final GestureDetector
-            mGestureDetector;
-    private final ScaleGestureDetector
-            mScaleGestureDetector;
-    private final Scroller mScroller;
-    private final Stepper mStepper;
-    /** MEHDOK CHANGES **/
-    private boolean HORIZONTAL_SCROLLING = true;
-    /** MEHDOK CHANGES **/
-
-    private Adapter mAdapter;
-    private int mCurrent;    // Adapter's index for the current view
-    private boolean mResetLayout;
     private boolean mUserInteracting;  // Whether the user is interacting
     private boolean mScaling;    // Whether the user is currently pinch zooming
     private float mScale = 1.0f;
@@ -61,11 +54,20 @@ public class ReaderView
     private int mYScroll;    // and then accounted for in onLayout
     private boolean mReflow = false;
     private boolean mReflowChanged = false;
+    private final GestureDetector
+            mGestureDetector;
+    private final ScaleGestureDetector
+            mScaleGestureDetector;
+    private final Scroller mScroller;
+    private final Stepper mStepper;
     private int mScrollerLastX;
     private int mScrollerLastY;
     private float mLastScaleFocusX;
     private float mLastScaleFocusY;
-    private boolean memAlert = false;
+
+    static abstract class ViewMapper {
+        abstract void applyToView(View view);
+    }
 
     public ReaderView(Context context) {
         super(context);
@@ -99,37 +101,6 @@ public class ReaderView
         mScaleGestureDetector = new ScaleGestureDetector(context, this);
         mScroller = new Scroller(context);
         mStepper = new Stepper(this, this);
-    }
-
-    private static int directionOfTravel(float vx, float vy) {
-        if (Math.abs(vx) > 2 * Math.abs(vy)) {
-            return (vx > 0) ? MOVING_RIGHT : MOVING_LEFT;
-        } else if (Math.abs(vy) > 2 * Math.abs(vx)) {
-            return (vy > 0) ? MOVING_DOWN : MOVING_UP;
-        } else {
-            return MOVING_DIAGONALLY;
-        }
-    }
-
-    private static boolean withinBoundsInDirectionOfTravel(Rect bounds, float vx, float vy) {
-        switch (directionOfTravel(vx, vy)) {
-            case MOVING_DIAGONALLY:
-                return bounds.contains(0, 0);
-            case MOVING_LEFT:
-                return bounds.left <= 0;
-            case MOVING_RIGHT:
-                return bounds.right >= 0;
-            case MOVING_UP:
-                return bounds.top <= 0;
-            case MOVING_DOWN:
-                return bounds.bottom >= 0;
-            default:
-                throw new NoSuchElementException();
-        }
-    }
-
-    public void setScrollingDirectionHorizontal(boolean horizontalScrolling) {
-        HORIZONTAL_SCROLLING = horizontalScrolling;
     }
 
     public int getDisplayedViewIndex() {
@@ -372,14 +343,22 @@ public class ReaderView
     protected void onSettle(View v) {
     }
 
+    ;
+
     protected void onUnsettle(View v) {
     }
+
+    ;
 
     protected void onNotInUse(View v) {
     }
 
+    ;
+
     protected void onScaleChild(View v, Float scale) {
     }
+
+    ;
 
     public View getView(int i) {
         return mChildViews.get(i);
@@ -627,9 +606,9 @@ public class ReaderView
         } catch (OutOfMemoryError e) {
             System.out.println("Out of memory during layout");
 
-            //  we might get an out of memory error.
-            //  so let's display an alert.
-            //  TODO: a better message, in resources.
+            // we might get an out of memory error.
+            // so let's display an alert.
+            // TODO: a better message, in resources.
 
             if (!memAlert) {
                 memAlert = true;
@@ -646,6 +625,8 @@ public class ReaderView
             }
         }
     }
+
+    private boolean memAlert = false;
 
     private void onLayout2(boolean changed, int left, int top, int right,
                            int bottom) {
@@ -749,7 +730,7 @@ public class ReaderView
         // the views spaced out
         cvOffset = subScreenSizeOffset(cv);
         if (notPresent) {
-            //Main item not already present. Just place it top left
+            // Main item not already present. Just place it top left
             cvLeft = cvOffset.x;
             cvTop = cvOffset.y;
         } else {
@@ -829,6 +810,11 @@ public class ReaderView
     }
 
     @Override
+    public View getSelectedView() {
+        return null;
+    }
+
+    @Override
     public void setAdapter(Adapter adapter) {
 
         //  release previous adapter's bitmaps
@@ -841,11 +827,6 @@ public class ReaderView
         mAdapter = adapter;
 
         requestLayout();
-    }
-
-    @Override
-    public View getSelectedView() {
-        return null;
     }
 
     @Override
@@ -879,7 +860,7 @@ public class ReaderView
             params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
         }
         addViewInLayout(v, 0, params, true);
-        mChildViews.append(i, v); // Record the view against it's adapter index
+        mChildViews.append(i, v); // Record the view against its adapter index
         measureView(v);
     }
 
@@ -931,7 +912,7 @@ public class ReaderView
 
     private void postSettle(final View v) {
         // onSettle and onUnsettle are posted so that the calls
-        // wont be executed until after the system has performed
+        // won't be executed until after the system has performed
         // layout.
         post(new Runnable() {
             public void run() {
@@ -962,7 +943,30 @@ public class ReaderView
                          Math.max((getHeight() - v.getMeasuredHeight()) / 2, 0));
     }
 
-    static abstract class ViewMapper {
-        abstract void applyToView(View view);
+    private static int directionOfTravel(float vx, float vy) {
+        if (Math.abs(vx) > 2 * Math.abs(vy)) {
+            return (vx > 0) ? MOVING_RIGHT : MOVING_LEFT;
+        } else if (Math.abs(vy) > 2 * Math.abs(vx)) {
+            return (vy > 0) ? MOVING_DOWN : MOVING_UP;
+        } else {
+            return MOVING_DIAGONALLY;
+        }
+    }
+
+    private static boolean withinBoundsInDirectionOfTravel(Rect bounds, float vx, float vy) {
+        switch (directionOfTravel(vx, vy)) {
+            case MOVING_DIAGONALLY:
+                return bounds.contains(0, 0);
+            case MOVING_LEFT:
+                return bounds.left <= 0;
+            case MOVING_RIGHT:
+                return bounds.right >= 0;
+            case MOVING_UP:
+                return bounds.top <= 0;
+            case MOVING_DOWN:
+                return bounds.bottom >= 0;
+            default:
+                throw new NoSuchElementException();
+        }
     }
 }

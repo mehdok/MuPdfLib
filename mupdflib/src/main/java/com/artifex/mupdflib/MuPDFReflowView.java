@@ -14,10 +14,10 @@ public class MuPDFReflowView extends WebView implements MuPDFView {
     private final MuPDFCore mCore;
     private final Handler mHandler;
     private final Point mParentSize;
-    AsyncTask<Void, Void, byte[]> mLoadHTML;
     private int mPage;
     private float mScale;
     private int mContentHeight;
+    AsyncTask<Void, Void, byte[]> mLoadHTML;
 
     public MuPDFReflowView(Context c, MuPDFCore core, Point parentSize) {
         super(c);

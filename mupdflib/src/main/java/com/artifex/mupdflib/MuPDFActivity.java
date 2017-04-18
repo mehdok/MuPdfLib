@@ -36,6 +36,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ViewAnimator;
 
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -50,14 +51,21 @@ class ThreadPerTaskExecutor implements Executor {
 }
 
 public class MuPDFActivity extends Activity implements FilePicker.FilePickerSupport {
-    static private AlertDialog.Builder gAlertBuilder;
+    /* The core rendering instance */
+    enum TopBarMode {
+        Main, Search, Annot, Delete, More, Accept
+    }
+
     ;
+
+    enum AcceptMode {Highlight, Underline, StrikeOut, Ink, CopyText}
+
+    ;
+
     private final int OUTLINE_REQUEST = 0;
-    ;
     private final int PRINT_REQUEST = 1;
     private final int FILEPICK_REQUEST = 2;
     private final int PROOF_REQUEST = 3;
-    private final Handler mHandler = new Handler();
     private MuPDFCore core;
     private String mFileName;
     private MuPDFReaderView mDocView;
@@ -87,6 +95,7 @@ public class MuPDFActivity extends Activity implements FilePicker.FilePickerSupp
     private ImageButton mSepsButton;
     private AlertDialog.Builder mAlertBuilder;
     private boolean mLinkHighlight = false;
+    private final Handler mHandler = new Handler();
     private boolean mAlertsActive = false;
     private boolean mReflow = false;
     private AsyncTask<Void, Void, MuPDFAlert> mAlertTask;
@@ -94,6 +103,8 @@ public class MuPDFActivity extends Activity implements FilePicker.FilePickerSupp
     private FilePicker mFilePicker;
     private String mProofFile;
     private boolean mSepEnabled[][];
+
+    static private AlertDialog.Builder gAlertBuilder;
 
     static public AlertDialog.Builder getAlertBuilder() {
         return gAlertBuilder;
@@ -269,7 +280,7 @@ public class MuPDFActivity extends Activity implements FilePicker.FilePickerSupp
         super.onCreate(savedInstanceState);
 
         mAlertBuilder = new AlertDialog.Builder(this);
-        gAlertBuilder = mAlertBuilder;  //  keep a static copy of this that other classes can use
+        gAlertBuilder = mAlertBuilder; //  keep a static copy of this that other classes can use
 
         if (core == null) {
             core = (MuPDFCore) getLastNonConfigurationInstance();
@@ -289,9 +300,14 @@ public class MuPDFActivity extends Activity implements FilePicker.FilePickerSupp
                     String reason = null;
                     try {
                         InputStream is = getContentResolver().openInputStream(uri);
-                        int len = is.available();
-                        buffer = new byte[len];
-                        is.read(buffer, 0, len);
+                        int len;
+                        ByteArrayOutputStream bufferStream = new ByteArrayOutputStream();
+                        byte[] data = new byte[16384];
+                        while ((len = is.read(data, 0, data.length)) != -1) {
+                            bufferStream.write(data, 0, len);
+                        }
+                        bufferStream.flush();
+                        buffer = bufferStream.toByteArray();
                         is.close();
                     } catch (OutOfMemoryError e) {
                         System.out.println("Out of memory during buffer reading");
@@ -1446,12 +1462,5 @@ public class MuPDFActivity extends Activity implements FilePicker.FilePickerSupp
         intent.setAction(ChoosePDFActivity.PICK_KEY_FILE);
         startActivityForResult(intent, FILEPICK_REQUEST);
     }
-
-    /* The core rendering instance */
-    enum TopBarMode {
-        Main, Search, Annot, Delete, More, Accept
-    }
-
-    enum AcceptMode {Highlight, Underline, StrikeOut, Ink, CopyText}
 
 }

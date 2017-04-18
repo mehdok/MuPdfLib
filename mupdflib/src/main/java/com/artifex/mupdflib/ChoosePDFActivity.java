@@ -32,6 +32,7 @@ public class ChoosePDFActivity extends ListActivity {
     static public final String PICK_KEY_FILE = "com.artifex.mupdfdemo.PICK_KEY_FILE";
     static private File mDirectory;
     static private Map<String, Integer> mPositions = new HashMap<String, Integer>();
+    private File mTopDirectory;
     private File mParent;
     private File[] mDirs;
     private File[] mFiles;
@@ -45,7 +46,6 @@ public class ChoosePDFActivity extends ListActivity {
         super.onCreate(savedInstanceState);
 
         mPurpose = PICK_KEY_FILE.equals(getIntent().getAction()) ? Purpose.PickKeyFile : Purpose.PickPDF;
-
 
         String storageState = Environment.getExternalStorageState();
 
@@ -65,9 +65,8 @@ public class ChoosePDFActivity extends ListActivity {
             return;
         }
 
-        if (mDirectory == null) {
-            mDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-        }
+        mDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        mTopDirectory = mDirectory.getParentFile();
 
         // Create a list adapter...
         adapter = new ChoosePDFAdapter(getLayoutInflater());
@@ -83,10 +82,12 @@ public class ChoosePDFActivity extends ListActivity {
                 String title = res.getString(R.string.picker_title_App_Ver_Dir);
                 setTitle(String.format(title, appName, version, mDirectory));
 
-                mParent = mDirectory.getParentFile();
+                mParent = null;
+                if (!mDirectory.equals(mTopDirectory)) {
+                    mParent = mDirectory.getParentFile();
+                }
 
                 mDirs = mDirectory.listFiles(new FileFilter() {
-
                     public boolean accept(File file) {
                         return file.isDirectory();
                     }
@@ -96,7 +97,6 @@ public class ChoosePDFActivity extends ListActivity {
                 }
 
                 mFiles = mDirectory.listFiles(new FileFilter() {
-
                     public boolean accept(File file) {
                         if (file.isDirectory()) {
                             return false;
@@ -114,6 +114,9 @@ public class ChoosePDFActivity extends ListActivity {
                                     return true;
                                 }
                                 if (fname.endsWith(".epub")) {
+                                    return true;
+                                }
+                                if (fname.endsWith(".fb2")) {
                                     return true;
                                 }
                                 if (fname.endsWith(".png")) {

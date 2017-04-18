@@ -9,6 +9,14 @@ public class CancellableAsyncTask<Params, Result> {
     private final AsyncTask<Params, Void, Result> asyncTask;
     private final CancellableTaskDefinition<Params, Result> ourTask;
 
+    public void onPreExecute() {
+
+    }
+
+    public void onPostExecute(Result result) {
+
+    }
+
     public CancellableAsyncTask(final CancellableTaskDefinition<Params, Result> task) {
         if (task == null) {
             throw new IllegalArgumentException();
@@ -31,18 +39,15 @@ public class CancellableAsyncTask<Params, Result> {
                 CancellableAsyncTask.this.onPostExecute(result);
                 task.doCleanup();
             }
+
+            @Override
+            protected void onCancelled(Result result) {
+                task.doCleanup();
+            }
         };
     }
 
-    public void onPreExecute() {
-
-    }
-
-    public void onPostExecute(Result result) {
-
-    }
-
-    public void cancelAndWait() {
+    public void cancel() {
         this.asyncTask.cancel(true);
         ourTask.doCancel();
 
@@ -52,8 +57,6 @@ public class CancellableAsyncTask<Params, Result> {
         } catch (ExecutionException e) {
         } catch (CancellationException e) {
         }
-
-        ourTask.doCleanup();
     }
 
     public void execute(Params... params) {

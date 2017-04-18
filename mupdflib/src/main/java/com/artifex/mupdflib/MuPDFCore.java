@@ -15,7 +15,7 @@ public class MuPDFCore {
 
     static {
         System.out.println("Loading dll");
-        System.loadLibrary("mupdf_java");
+        System.loadLibrary("mupdf_java32");
         System.out.println("Loaded dll");
         if (gprfSupportedInternal()) {
             try {
@@ -27,7 +27,6 @@ public class MuPDFCore {
         }
     }
 
-    private final boolean wasOpenedFromBuffer;
     /* Readable members */
     private int numPages = -1;
     private float pageWidth;
@@ -36,37 +35,10 @@ public class MuPDFCore {
     private byte fileBuffer[];
     private String file_format;
     private boolean isUnencryptedPDF;
-
-    public MuPDFCore(Context context, String filename) throws Exception {
-        globals = openFile(filename);
-        if (globals == 0) {
-            throw new Exception(String.format(context.getString(R.string.cannot_open_file_Path), filename));
-        }
-        file_format = fileFormatInternal();
-        isUnencryptedPDF = isUnencryptedPDFInternal();
-        wasOpenedFromBuffer = false;
-    }
-
-    public MuPDFCore(Context context, byte buffer[], String magic) throws Exception {
-        fileBuffer = buffer;
-        globals = openBuffer(magic != null ? magic : "");
-        if (globals == 0) {
-            throw new Exception(context.getString(R.string.cannot_open_buffer));
-        }
-        file_format = fileFormatInternal();
-        isUnencryptedPDF = isUnencryptedPDFInternal();
-        wasOpenedFromBuffer = true;
-    }
+    private final boolean wasOpenedFromBuffer;
 
     /* The native functions */
     private static native boolean gprfSupportedInternal();
-
-    public static boolean gprfSupported() {
-        if (gs_so_available == false) {
-            return false;
-        }
-        return gprfSupportedInternal();
-    }
 
     private native long openFile(String filename);
 
@@ -114,10 +86,6 @@ public class MuPDFCore {
     private native void setFocusedWidgetChoiceSelectedInternal(String[] selected);
 
     private native String[] getFocusedWidgetChoiceSelected();
-
-    public synchronized void setFocusedWidgetChoiceSelected(String[] selected) {
-        setFocusedWidgetChoiceSelectedInternal(selected);
-    }
 
     private native String[] getFocusedWidgetChoiceOptions();
 
@@ -233,6 +201,48 @@ public class MuPDFCore {
         return metaTitle();
     }
 
+    public class Cookie {
+        private final long cookiePtr;
+
+        public Cookie() {
+            cookiePtr = createCookie();
+            if (cookiePtr == 0) {
+                throw new OutOfMemoryError();
+            }
+        }
+
+        public void abort() {
+            abortCookie(cookiePtr);
+        }
+
+        public void destroy() {
+            // We could do this in finalize, but there's no guarantee that
+            // a finalize will occur before the muPDF context occurs.
+            destroyCookie(cookiePtr);
+        }
+    }
+
+    public MuPDFCore(Context context, String filename) throws Exception {
+        globals = openFile(filename);
+        if (globals == 0) {
+            throw new Exception(String.format(context.getString(R.string.cannot_open_file_Path), filename));
+        }
+        file_format = fileFormatInternal();
+        isUnencryptedPDF = isUnencryptedPDFInternal();
+        wasOpenedFromBuffer = false;
+    }
+
+    public MuPDFCore(Context context, byte buffer[], String magic) throws Exception {
+        fileBuffer = buffer;
+        globals = openBuffer(magic != null ? magic : "");
+        if (globals == 0) {
+            throw new Exception(context.getString(R.string.cannot_open_buffer));
+        }
+        file_format = fileFormatInternal();
+        isUnencryptedPDF = isUnencryptedPDFInternal();
+        wasOpenedFromBuffer = true;
+    }
+
     public int countPages() {
         if (numPages < 0) {
             numPages = countPagesSynchronized();
@@ -338,6 +348,10 @@ public class MuPDFCore {
         return success;
     }
 
+    public synchronized void setFocusedWidgetChoiceSelected(String[] selected) {
+        setFocusedWidgetChoiceSelectedInternal(selected);
+    }
+
     public synchronized String checkFocusedSignature() {
         return checkFocusedSignatureInternal();
     }
@@ -354,7 +368,7 @@ public class MuPDFCore {
         return getWidgetAreasInternal(page);
     }
 
-    public synchronized Annotation[] getAnnoations(int page) {
+    public synchronized Annotation[] getAnnotations(int page) {
         return getAnnotationsInternal(page);
     }
 
@@ -456,6 +470,13 @@ public class MuPDFCore {
         endProofInternal(filename);
     }
 
+    public static boolean gprfSupported() {
+        if (gs_so_available == false) {
+            return false;
+        }
+        return gprfSupportedInternal();
+    }
+
     public boolean canProof() {
         String format = fileFormat();
         if (format.contains("PDF")) {
@@ -474,26 +495,5 @@ public class MuPDFCore {
 
     public synchronized Separation getSep(int page, int sep) {
         return getSepInternal(page, sep);
-    }
-
-    public class Cookie {
-        private final long cookiePtr;
-
-        public Cookie() {
-            cookiePtr = createCookie();
-            if (cookiePtr == 0) {
-                throw new OutOfMemoryError();
-            }
-        }
-
-        public void abort() {
-            abortCookie(cookiePtr);
-        }
-
-        public void destroy() {
-            // We could do this in finalize, but there's no guarantee that
-            // a finalize will occur before the muPDF context occurs.
-            destroyCookie(cookiePtr);
-        }
     }
 }
